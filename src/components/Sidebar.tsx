@@ -19,8 +19,12 @@ export const Sidebar: React.FC = () => {
             <span className="px-2 py-1 bg-white/10 rounded text-xs">空格键</span>
           </li>
           <li className="flex justify-between items-center">
-            <span>暂停</span>
-            <span className="px-2 py-1 bg-white/10 rounded text-xs">P 键</span>
+            <span>暂停/商店</span>
+            <span className="px-2 py-1 bg-white/10 rounded text-xs">P 键 / 按钮</span>
+          </li>
+          <li className="flex justify-between items-center">
+            <span>金币</span>
+            <span className="px-2 py-1 bg-white/10 rounded text-xs">击毁敌机获得</span>
           </li>
           <li className="flex justify-between items-center">
             <span>移动端</span>

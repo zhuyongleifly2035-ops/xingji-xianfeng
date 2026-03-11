@@ -10,7 +10,9 @@ import {
   Shield, 
   ChevronRight,
   Home,
-  Settings
+  Settings,
+  ShoppingBag,
+  Coins
 } from 'lucide-react';
 import { GameState } from './types';
 import { ACHIEVEMENTS } from './constants';
@@ -18,26 +20,51 @@ import { Starfield } from './components/Starfield';
 import { GameCanvas } from './components/GameCanvas';
 import { Sidebar } from './components/Sidebar';
 import { AchievementPopup } from './components/AchievementPopup';
+import { Shop } from './components/Shop';
 
 export default function App() {
   const [gameState, setGameState] = useState<GameState>(GameState.START);
   const [score, setScore] = useState(0);
+  const [credits, setCredits] = useState(0);
   const [health, setHealth] = useState(3);
+  const [maxHealth, setMaxHealth] = useState(3);
   const [level, setLevel] = useState(1);
   const [unlockedAchievements, setUnlockedAchievements] = useState<string[]>([]);
   const [currentAchievement, setCurrentAchievement] = useState<any>(null);
+  const [shopPurchase, setShopPurchase] = useState<{ type: string; timestamp: number } | undefined>();
 
   const handleStart = () => {
     setGameState(GameState.PLAYING);
     setScore(0);
+    setCredits(0);
     setHealth(3);
+    setMaxHealth(3);
     setLevel(1);
   };
 
   const handlePause = useCallback(() => {
     if (gameState === GameState.PLAYING) setGameState(GameState.PAUSED);
     else if (gameState === GameState.PAUSED) setGameState(GameState.PLAYING);
+    else if (gameState === GameState.SHOP) setGameState(GameState.PLAYING);
   }, [gameState]);
+
+  const handleOpenShop = () => {
+    if (gameState === GameState.PLAYING || gameState === GameState.PAUSED) {
+      setGameState(GameState.SHOP);
+    }
+  };
+
+  const handlePurchase = (type: string, price: number) => {
+    if (credits >= price) {
+      setCredits(prev => prev - price);
+      setShopPurchase({ type, timestamp: Date.now() });
+    }
+  };
+
+  const handleHealthUpdate = (newHealth: number, newMaxHealth: number) => {
+    setHealth(newHealth);
+    setMaxHealth(newMaxHealth);
+  };
 
   const handleGameOver = (finalScore: number, finalLevel: number) => {
     setScore(finalScore);
@@ -79,6 +106,12 @@ export default function App() {
             </span>
           </div>
           <div className="glass px-4 py-2 rounded-xl flex items-center gap-2">
+            <Coins size={18} className="text-amber-400" />
+            <span className="font-display font-bold text-xl tabular-nums text-amber-400">
+              {credits.toLocaleString()}
+            </span>
+          </div>
+          <div className="glass px-4 py-2 rounded-xl flex items-center gap-2">
             <ChevronRight size={18} className="text-blue-400" />
             <span className="font-display font-bold">LVL {level}</span>
           </div>
@@ -86,7 +119,7 @@ export default function App() {
 
         <div className="flex items-center gap-4">
           <div className="flex gap-1">
-            {[...Array(3)].map((_, i) => (
+            {[...Array(maxHealth)].map((_, i) => (
               <Heart 
                 key={i} 
                 size={24} 
@@ -94,6 +127,13 @@ export default function App() {
               />
             ))}
           </div>
+          <button 
+            onClick={handleOpenShop}
+            className="w-10 h-10 glass rounded-full flex items-center justify-center hover:bg-white/20 transition-colors text-amber-400"
+            title="商店"
+          >
+            <ShoppingBag size={18} />
+          </button>
           <button 
             onClick={handlePause}
             className="w-10 h-10 glass rounded-full flex items-center justify-center hover:bg-white/20 transition-colors"
@@ -112,13 +152,28 @@ export default function App() {
             gameState={gameState}
             onGameOver={handleGameOver}
             onScoreUpdate={setScore}
-            onHealthUpdate={setHealth}
+            onHealthUpdate={handleHealthUpdate}
+            onCreditsUpdate={setCredits}
             onLevelUpdate={setLevel}
             onAchievementUnlock={handleAchievementUnlock}
+            shopPurchase={shopPurchase}
           />
 
           {/* Overlays */}
           <AnimatePresence>
+            {gameState === GameState.SHOP && (
+              <Shop 
+                credits={credits}
+                health={health}
+                maxHealth={maxHealth}
+                onClose={() => setGameState(GameState.PLAYING)}
+                onPurchaseHealth={() => handlePurchase('health', 200)}
+                onPurchaseMaxHealth={() => handlePurchase('maxHealth', 1000)}
+                onPurchaseShield={() => handlePurchase('shield', 300)}
+                onPurchaseRapidFire={() => handlePurchase('rapidFire', 500)}
+                onPurchaseTripleShot={() => handlePurchase('tripleShot', 600)}
+              />
+            )}
             {gameState === GameState.START && (
               <motion.div 
                 initial={{ opacity: 0 }}

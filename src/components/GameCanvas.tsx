@@ -28,9 +28,14 @@ interface GameCanvasProps {
   gameState: GameState;
   onGameOver: (score: number, level: number) => void;
   onScoreUpdate: (score: number) => void;
-  onHealthUpdate: (health: number) => void;
+  onHealthUpdate: (health: number, maxHealth: number) => void;
+  onCreditsUpdate: (credits: number) => void;
   onLevelUpdate: (level: number) => void;
   onAchievementUnlock: (id: string) => void;
+  shopPurchase?: {
+    type: string;
+    timestamp: number;
+  };
 }
 
 export const GameCanvas: React.FC<GameCanvasProps> = ({
@@ -38,8 +43,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   onGameOver,
   onScoreUpdate,
   onHealthUpdate,
+  onCreditsUpdate,
   onLevelUpdate,
   onAchievementUnlock,
+  shopPurchase,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number>(null);
@@ -93,6 +100,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       health: PLAYER_MAX_HEALTH,
       maxHealth: PLAYER_MAX_HEALTH,
       speed: PLAYER_SPEED,
+      credits: 0,
       invincible: false,
       invincibleTimer: 0,
       powerUps: { tripleShot: 0, shield: false, rapidFire: 0 },
@@ -108,9 +116,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     keysRef.current.clear(); // Clear keys on reset
     
     onScoreUpdate(0);
-    onHealthUpdate(PLAYER_MAX_HEALTH);
+    onCreditsUpdate(0);
+    onHealthUpdate(PLAYER_MAX_HEALTH, PLAYER_MAX_HEALTH);
     onLevelUpdate(1);
-  }, [onScoreUpdate, onHealthUpdate, onLevelUpdate]);
+  }, [onScoreUpdate, onCreditsUpdate, onHealthUpdate, onLevelUpdate]);
 
   useEffect(() => {
     if (gameState === GameState.START) {
@@ -258,7 +267,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           } else {
             player.health--;
             damageTakenRef.current++;
-            onHealthUpdate(player.health);
+            onHealthUpdate(player.health, player.maxHealth);
             createExplosion(player.pos, '#ef4444', 15);
             if (player.health <= 0) {
               onGameOver(scoreRef.current, levelRef.current);
@@ -317,8 +326,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           bulletHit = true;
           if (e.health <= 0) {
             scoreRef.current += e.scoreValue;
+            playerRef.current.credits += Math.floor(e.scoreValue / 10);
             enemiesKilledRef.current++;
             onScoreUpdate(scoreRef.current);
+            onCreditsUpdate(playerRef.current.credits);
             createExplosion(e.pos, e.color, 20);
             
             if (enemiesKilledRef.current === 1) onAchievementUnlock('first_blood');
@@ -493,6 +504,33 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     ctx.shadowBlur = 0;
   };
+
+  useEffect(() => {
+    if (!shopPurchase) return;
+    
+    const player = playerRef.current;
+    switch (shopPurchase.type) {
+      case 'health':
+        player.health = Math.min(player.maxHealth, player.health + 1);
+        onHealthUpdate(player.health, player.maxHealth);
+        break;
+      case 'maxHealth':
+        player.maxHealth++;
+        player.health++;
+        onHealthUpdate(player.health, player.maxHealth);
+        break;
+      case 'shield':
+        player.powerUps.shield = true;
+        break;
+      case 'rapidFire':
+        player.powerUps.rapidFire = 15000;
+        break;
+      case 'tripleShot':
+        player.powerUps.tripleShot = 15000;
+        break;
+    }
+    createExplosion(player.pos, '#3b82f6', 30);
+  }, [shopPurchase, onHealthUpdate]);
 
   const loop = (time: number) => {
     const deltaTime = 16.67; // Approx 60fps

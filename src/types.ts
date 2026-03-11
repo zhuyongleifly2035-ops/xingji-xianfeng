@@ -2,6 +2,7 @@ export enum GameState {
   START = 'START',
   PLAYING = 'PLAYING',
   PAUSED = 'PAUSED',
+  SHOP = 'SHOP',
   GAMEOVER = 'GAMEOVER',
 }
 
@@ -33,6 +34,7 @@ export interface Player extends Entity {
   health: number;
   maxHealth: number;
   speed: number;
+  credits: number;
   invincible: boolean;
   invincibleTimer: number;
   powerUps: {
